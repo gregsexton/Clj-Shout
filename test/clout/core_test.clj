@@ -10,7 +10,8 @@
                                          :format :mp3
                                          :protocol :http
                                          :user "source"
-                                         :agent "clout"}))
+                                         :agent "clout"
+                                         :mount "/example.mp3"}))
 
        (fact "should provide defaults for missing builder values"
               (create-clout-session
@@ -20,7 +21,8 @@
                                       :format :mp3
                                       :protocol :http
                                       :user "source"
-                                      :agent "clout"}))
+                                      :agent "clout"
+                                      :mount "/example.mp3"}))
 
        (fact "should provide a readable builder syntax for setting every possible option at once"
              (create-clout-session
@@ -30,6 +32,7 @@
               (with-protocol :http)
               (with-user "foo")
               (with-password "hackme")
+              (with-mount "stream.mp3")
               (with-agent "agent")) => (contains
                                         {:hostname "host"
                                          :port 1234
@@ -37,6 +40,7 @@
                                          :protocol :http
                                          :user "foo"
                                          :agent "agent"
+                                         :mount "/stream.mp3"
                                          :password "hackme"})))
 
 
