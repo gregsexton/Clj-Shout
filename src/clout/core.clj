@@ -16,7 +16,7 @@
           [~key ~default]))))
 (defvalue with-host :hostname default-host)
 (defvalue with-port :port default-port)
-(defvalue with-format :format default-format)
+(defvalue with-format :stream-format default-format)
 (defvalue with-protocol :protocol default-protocol)
 (defvalue with-user :user default-user)
 (defvalue with-agent :agent default-useragent)

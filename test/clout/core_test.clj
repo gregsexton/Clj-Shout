@@ -7,7 +7,7 @@
              (create-clout-session) => (contains
                                         {:hostname "localhost"
                                          :port 8000
-                                         :format :mp3
+                                         :stream-format :mp3
                                          :protocol :http
                                          :user "source"
                                          :agent "clout"
@@ -18,7 +18,7 @@
                (with-port 1234)) => (contains
                                      {:hostname "localhost"
                                       :port 1234
-                                      :format :mp3
+                                      :stream-format :mp3
                                       :protocol :http
                                       :user "source"
                                       :agent "clout"
@@ -36,7 +36,7 @@
               (with-agent "agent")) => (contains
                                         {:hostname "host"
                                          :port 1234
-                                         :format :mp3
+                                         :stream-format :mp3
                                          :protocol :http
                                          :user "foo"
                                          :agent "agent"
