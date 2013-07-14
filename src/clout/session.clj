@@ -1,4 +1,4 @@
-(ns clout.core)
+(ns clout.session)
 
 (def default-host "localhost")
 (def default-port 8000)
@@ -43,5 +43,5 @@
                                    (with-mount nil)
                                    (with-name nil)
                                    (with-audio-info nil)
-                                   (is-public nil)))]
+                                   (is-public? nil)))]
     (reduce conj default-map pairs)))

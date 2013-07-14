@@ -1,6 +1,6 @@
-(ns clout.core-test
+(ns clout.session-test
   (:use midje.sweet
-        clout.core))
+        clout.session))
 
 (facts "about creating a new session"
        (fact "should provide all defaults"
