@@ -7,6 +7,7 @@
 (def default-user "source")
 (def default-useragent "clout")
 (def default-mount "/example.mp3")
+(def default-name "no name")
 
 (defmacro defvalue
   ([name key default & [transform]]
@@ -23,8 +24,14 @@
 (defvalue with-mount :mount default-mount #(if (re-matches #"^/" %)
                                              % (apply
                                                 str (concat "/" %))))
+(defvalue with-name :name default-name)
 (defvalue with-password :password
   (throw (IllegalArgumentException. "No password provided")))
+(defvalue is-public? :public? false)
+(defvalue with-audio-info :audio-info {})
+(defvalue with-genre :genre nil)
+(defvalue with-url :url nil)
+(defvalue with-description :description nil)
 
 (defn create-clout-session [& pairs]
   (let [default-map (into {} (list (with-host nil)
@@ -33,5 +40,8 @@
                                    (with-protocol nil)
                                    (with-user nil)
                                    (with-agent nil)
-                                   (with-mount nil)))]
+                                   (with-mount nil)
+                                   (with-name nil)
+                                   (with-audio-info nil)
+                                   (is-public nil)))]
     (reduce conj default-map pairs)))

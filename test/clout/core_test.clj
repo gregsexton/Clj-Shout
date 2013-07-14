@@ -11,6 +11,9 @@
                                          :protocol :http
                                          :user "source"
                                          :agent "clout"
+                                         :name "no name"
+                                         :audio-info {}
+                                         :public? false
                                          :mount "/example.mp3"}))
 
        (fact "should provide defaults for missing builder values"
@@ -22,7 +25,10 @@
                                       :protocol :http
                                       :user "source"
                                       :agent "clout"
-                                      :mount "/example.mp3"}))
+                                      :mount "/example.mp3"
+                                      :public? false
+                                      :audio-info {}
+                                      :name "no name"}))
 
        (fact "should provide a readable builder syntax for setting every possible option at once"
              (create-clout-session
@@ -33,6 +39,12 @@
               (with-user "foo")
               (with-password "hackme")
               (with-mount "stream.mp3")
+              (with-name "name changed")
+              (is-public? true)
+              (with-audio-info {"bitrate" 128})
+              (with-genre "blues")
+              (with-url "http://www.gregsexton.org")
+              (with-description "awesome stream")
               (with-agent "agent")) => (contains
                                         {:hostname "host"
                                          :port 1234
@@ -41,6 +53,12 @@
                                          :user "foo"
                                          :agent "agent"
                                          :mount "/stream.mp3"
+                                         :name "name changed"
+                                         :public? true
+                                         :audio-info {"bitrate" 128}
+                                         :url "http://www.gregsexton.org"
+                                         :genre "blues"
+                                         :description "awesome stream"
                                          :password "hackme"})))
 
 
