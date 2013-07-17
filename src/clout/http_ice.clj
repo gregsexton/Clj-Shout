@@ -3,7 +3,8 @@
             [clojure.data.codec.base64 :as b64]
             [lamina.core :refer :all]
             [gloss.core :as gloss]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clout.protocol :refer [Protocol]])
   (:import [java.net URLEncoder]))
 
 (def content-types {:mp3 "audio/mpeg"})
@@ -67,8 +68,10 @@
 
 ;;; interface:
 
-(defn connect [{:keys [hostname port] :as session}]
-  (let [ch (create-connection hostname port)]
+(deftype HttpProtocol [session ch]
+  Protocol
+
+  (connect [this]
     (apply enqueue ch (create-connection-request-frames session))
     (let [response (parse-response
                     (channel->lazy-seq ch 10000))
@@ -79,3 +82,6 @@
         (throw (IllegalStateException.
                 (format "Could not connect using session [%s]. Response: %s"
                         session response)))))))
+
+(defn create-protocol [{:keys [hostname port] :as session}]
+  (HttpProtocol. session (create-connection hostname port)))
