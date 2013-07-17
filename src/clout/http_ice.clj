@@ -47,19 +47,35 @@
              (format "ice-description: %s" description))
            ""]))
 
-(defn create-connection [host port]
+(defn create-connection [hostname port]
   (wait-for-result
    (tcp-client
-    {:host host
+    {:host hostname
      :port port
      :frame (gloss/string :utf-8 :delimiters ["\r\n"])})))
 
-(defn connect [ch session]
-  (apply enqueue ch (create-connection-request-frames session)))
+(defn parse-status [status]
+  (let [[version resp-code msg] (str/split status #"\s" 3)]
+    {:status {:code (Integer/parseInt resp-code)
+              :message msg}}))
 
+(defn parse-headers [header & headers] {})  ;todo, maybe
+
+(defn parse-response [[status & headers]]
+  (merge (parse-status status)
+         (parse-headers headers)))
 
 ;;; interface:
 
-(defn create-and-connect [{:keys [host port] :as session}]
-  (let [ch (create-connection host port)]
-    (connect ch session)))
+(defn connect [{:keys [hostname port] :as session}]
+  (let [ch (create-connection hostname port)]
+    (apply enqueue ch (create-connection-request-frames session))
+    (let [response (parse-response
+                    (channel->lazy-seq ch 10000))
+          code (get-in response [:status :code])]
+      (if (and (>= code 200)
+               (< code 300))
+        ch
+        (throw (IllegalStateException.
+                (format "Could not connect using session [%s]. Response: %s"
+                        session response)))))))

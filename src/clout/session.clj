@@ -21,9 +21,10 @@
 (defvalue with-protocol :protocol default-protocol)
 (defvalue with-user :user default-user)
 (defvalue with-agent :agent default-useragent)
-(defvalue with-mount :mount default-mount #(if (re-matches #"^/" %)
-                                             % (apply
-                                                str (concat "/" %))))
+(defvalue with-mount :mount default-mount #(if (re-find #"^/" %)
+                                             %
+                                             (apply
+                                              str (concat "/" %))))
 (defvalue with-name :name default-name)
 (defvalue with-password :password
   (throw (IllegalArgumentException. "No password provided")))

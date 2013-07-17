@@ -23,3 +23,14 @@
 
        (fact "handles empty map"
              (url-encode-map {} ";") => ""))
+
+(facts "about http response parsing"
+       (fact "should parse status line"
+             (parse-status "HTTP/1.0 200 OK") =>
+             {:status {:code 200
+                       :message "OK"}}
+
+             (parse-status "HTTP/1.0 401 Authentication Required") =>
+             {:status {:code 401
+                       :message "Authentication Required"}}))
+
