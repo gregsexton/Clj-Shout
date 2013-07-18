@@ -84,4 +84,4 @@
                         session response)))))))
 
 (defn create-protocol [{:keys [hostname port] :as session}]
-  (HttpProtocol. session (create-connection hostname port)))
+  (->HttpProtocol session (create-connection hostname port)))
