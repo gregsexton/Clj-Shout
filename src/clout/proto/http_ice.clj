@@ -1,10 +1,10 @@
-(ns clout.http-ice
+(ns clout.proto.http-ice
   (:require [aleph.tcp :refer [tcp-client]]
             [clojure.data.codec.base64 :as b64]
             [lamina.core :refer :all]
             [gloss.core :as gloss]
             [clojure.string :as str]
-            [clout.protocol :refer [Protocol]])
+            [clout.proto.protocol :refer [Protocol]])
   (:import [java.net URLEncoder]))
 
 (def content-types {:mp3 "audio/mpeg"})

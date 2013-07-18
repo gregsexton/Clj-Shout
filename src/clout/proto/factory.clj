@@ -1,5 +1,5 @@
-(ns clout.connect
-  (:require [clout.http-ice :as http]))
+(ns clout.proto.factory
+  (:require [clout.proto.http-ice :as http]))
 
 (defmulti create-protocol :protocol)
 
