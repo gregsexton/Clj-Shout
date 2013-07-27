@@ -1,7 +1,8 @@
 (ns clout.stream.mp3-stream
-  (:require [clout.stream.stream :refer [Stream]]))
+  (:require [clout.stream.stream :refer [OutStream]]))
 
-(deftype Mp3Stream [protocol]
-  Stream
+(deftype Mp3OutStream [stream]
+  OutStream
 
-  (stream [this bytes]))
+  (write [this bytes])
+  (close [this]))

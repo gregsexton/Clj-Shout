@@ -1,7 +1,15 @@
 (ns clout.stream.stream)
 
-(defprotocol Stream
-  "An output stream used to stream files to a server. Implementations
-  may make use of a Protocol to actually send the data."
+(defprotocol OutStream
+  "An output stream."
 
-  (stream [this bytes]))
+  (write [this bytes])
+  (close [this]))
+
+(defmulti create-protocol-stream
+  "Create a protocol OutStream given a session."
+  :protocol)
+
+(defmulti create-format-stream
+  "Create a format OutStream given a session"
+  :stream-format)

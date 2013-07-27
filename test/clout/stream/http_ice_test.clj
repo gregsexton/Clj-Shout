@@ -1,6 +1,6 @@
-(ns clout.proto.http-ice-test
+(ns clout.stream.http-ice-test
   (:use midje.sweet
-        clout.proto.http-ice))
+        clout.stream.http-ice))
 
 (facts "about basic auth"
        (fact "should create correct header given a user and pass"

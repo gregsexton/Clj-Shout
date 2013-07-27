@@ -1,7 +1,10 @@
 (ns clout.stream.factory
-  (:require [clout.stream.mp3-stream :as mp3]))
+  (:require [clout.stream.http-ice :as http]
+            [clout.stream.mp3-stream :as mp3]
+            [clout.stream.stream :refer :all]))
 
-(defmulti create-stream :stream-format)
+(defmethod create-format-stream :mp3 [session stream]
+  (mp3/->Mp3OutStream stream))
 
-(defmethod create-stream :mp3 [session protocol]
-  (mp3/->Mp3Stream protocol))
+(defmethod create-protocol-stream :http [session]
+  (http/create-protocol-stream session))

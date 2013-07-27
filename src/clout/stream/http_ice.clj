@@ -1,10 +1,10 @@
-(ns clout.proto.http-ice
+(ns clout.stream.http-ice
   (:require [aleph.tcp :refer [tcp-client]]
             [clojure.data.codec.base64 :as b64]
             [lamina.core :refer :all]
             [gloss.core :as gloss]
             [clojure.string :as str]
-            [clout.proto.protocol :refer [Protocol]])
+            [clout.stream.stream :refer [OutStream]])
   (:import [java.net URLEncoder]))
 
 (def content-types {:mp3 "audio/mpeg"})
@@ -48,12 +48,14 @@
              (format "ice-description: %s" description))
            ""]))
 
-(defn create-connection [hostname port]
-  (wait-for-result
-   (tcp-client
-    {:host hostname
-     :port port
-     :frame (gloss/string :utf-8 :delimiters ["\r\n"])})))
+(defn create-connection [{:keys [hostname port] :as session}]
+  {:connected? false
+   :session session
+   :ch (wait-for-result
+        (tcp-client
+         {:host hostname
+          :port port
+          :frame (gloss/string :utf-8 :delimiters ["\r\n"])}))})
 
 (defn parse-status [status]
   (let [[version resp-code msg] (str/split status #"\s" 3)]
@@ -66,22 +68,25 @@
   (merge (parse-status status)
          (parse-headers headers)))
 
+(defn connect [{:keys [ch session] :as conn}]
+  (apply enqueue ch (create-connection-request-frames session))
+  (let [response (parse-response
+                  (channel->lazy-seq ch 10000))
+        code (get-in response [:status :code])]
+    (if (and (>= code 200)
+             (< code 300))
+      (merge conn {:ch ch, :connected? true})
+      (throw (IllegalStateException.
+              (format "Could not connect using session [%s]. Response: %s"
+                      session response))))))
+
 ;;; interface:
 
-(deftype HttpProtocol [session ch]
-  Protocol
+(deftype IceHttpOutStream [conn]
+  OutStream
 
-  (connect [this]
-    (apply enqueue ch (create-connection-request-frames session))
-    (let [response (parse-response
-                    (channel->lazy-seq ch 10000))
-          code (get-in response [:status :code])]
-      (if (and (>= code 200)
-               (< code 300))
-        ch
-        (throw (IllegalStateException.
-                (format "Could not connect using session [%s]. Response: %s"
-                        session response)))))))
+  (write [this bytes])
+  (close [this]))
 
-(defn create-protocol [{:keys [hostname port] :as session}]
-  (->HttpProtocol session (create-connection hostname port)))
+(defn create-protocol-stream [session]
+  (->IceHttpOutStream (create-connection session)))
