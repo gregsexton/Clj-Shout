@@ -7,4 +7,4 @@
                  [aleph "0.3.0-rc2"]
                  [org.clojure/data.codec "0.1.0"]]
   :plugins [[lein-midje "3.0.0"]]
-  :profiles {:dev {:dependencies [[midje "1.5.0"]]}})
+  :profiles {:dev {:dependencies [[midje "1.6-alpha3"]]}})
