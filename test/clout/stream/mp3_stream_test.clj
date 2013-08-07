@@ -78,8 +78,13 @@
              (lookup-bitrate 1 2 15) => (throws AssertionError)
              (lookup-bitrate 1 2 16) => (throws AssertionError))
 
-       (future-fact "should lookup the samplesize correctly"))
+       (fact "should lookup the samplesize correctly"
+             (lookup-samplerate 1 0) => 44100
+             (lookup-samplerate 2 1) => 24000
+             (lookup-samplerate 25 2) => 8000
+             (lookup-samplerate 12 2) => (throws IllegalArgumentException)
+             (lookup-samplerate 2 3) => (throws AssertionError)))
 
-(facts "about calculating frame size"
+(facts "about calculating frame size from header"
        (future-fact "should calculate frame-size"
              (frame-size (maybe-parse-header header-bytes)) => ???))

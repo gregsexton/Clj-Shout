@@ -54,18 +54,24 @@
         v (condp = version
             1 :v1 2 :v2 25 :v2
             (throw (IllegalArgumentException.
-                    (format "Unexpected version: " version))))
+                    (format "Unexpected version: %s" version))))
         l (condp = layer
             1 :l1 2 :l2 3 :l3
             (throw (IllegalArgumentException.
-                    (format "Unexpected layer: " layer))))]
-    (->> index
-         (get lookup)
-         v
-         l)))
+                    (format "Unexpected layer: %s" layer))))]
+    (->> index (get lookup) v l)))
 
 (defn lookup-samplerate [version index]
-  44100)                                ;todo
+  {:pre [(< index 3)]}
+  (let [lookup {0 { 1 44100 2 22050 25 11025 }
+                1 { 1 48000 2 24000 25 12000 }
+                2 { 1 32000 2 16000 25 8000 }}]
+    (if-let [value (-> index
+                       (->> (get lookup))
+                       (get version))]
+      value
+      (throw (IllegalArgumentException.
+              (format "Illegal version: %s" version))))))
 
 (defn maybe-parse-header [[b1 b2 b3 b4]]
   (let [head (combine-bytes b1 b2 b3 b4)
