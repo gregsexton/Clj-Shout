@@ -73,23 +73,29 @@
       (throw (IllegalArgumentException.
               (format "Illegal version: %s" version))))))
 
+(defn validate-header [header]
+  (and (:valid-sync? header)
+       header))
+
 (defn maybe-parse-header [[b1 b2 b3 b4]]
   (let [head (combine-bytes b1 b2 b3 b4)
         sync (bit-extract head 32 11)
         version (lookup-version (bit-extract head 21 2))
         layer (lookup-layer (bit-extract head 19 2))]
-    {:valid-sync? (= sync 2047)         ;11 bits set
-     :version version
-     :layer layer
-     :error-protection? (= (bit-extract head 17 1) 0)
-     :bitrate (lookup-bitrate version layer (bit-extract head 16 4))
-     :samplerate (lookup-samplerate version (bit-extract head 12 2))
-     :padded? (= (bit-extract head 10 1) 1)
-     :stereo? (not= (bit-extract head 8 2) 3)
-     :mode-ext-code (bit-extract head 6 2)  ;raw
-     :copyright? (= (bit-extract head 4 1) 1)
-     :original? (= (bit-extract head 4 1) 0)
-     :emphasis? (not= (bit-extract head 4 1) 0)}))
+    (when-let [header (validate-header
+                       {:valid-sync? (= sync 2047)       ;11 bits set
+                        :version version
+                        :layer layer
+                        :error-protection? (= (bit-extract head 17 1) 0)
+                        :bitrate (lookup-bitrate version layer (bit-extract head 16 4))
+                        :samplerate (lookup-samplerate version (bit-extract head 12 2))
+                        :padded? (= (bit-extract head 10 1) 1)
+                        :stereo? (not= (bit-extract head 8 2) 3)
+                        :mode-ext-code (bit-extract head 6 2) ;raw
+                        :copyright? (= (bit-extract head 4 1) 1)
+                        :original? (= (bit-extract head 4 1) 0)
+                        :emphasis? (not= (bit-extract head 4 1) 0)})]
+      header)))
 
 (deftype SynchronousMp3OutStream [stream]
   OutStream

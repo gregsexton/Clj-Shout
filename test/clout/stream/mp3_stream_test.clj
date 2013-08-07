@@ -32,9 +32,11 @@
 
        ;; http://mpgedit.org/mpgedit/mpeg_format/MP3Format.html
 
-       (future-fact "should return nil given an invalid header"
-                    ;; todo: perform checks as in mp3_header
-                    (maybe-parse-header [5 6 7 8]) => nil)
+       (fact "should return nil given an invalid header"
+             (maybe-parse-header [(unchecked-int 0xfd)
+                                  (unchecked-int 0xe7)
+                                  (unchecked-int 0xc0)
+                                  (unchecked-int 0x00)]) => nil)
 
        (let [header [(unchecked-int 0xff)
                      (unchecked-int 0xfb)
@@ -55,13 +57,13 @@
 
        (fact "should lookup the version"
              (maybe-parse-header [(unchecked-int 0xff)
-                                  (unchecked-int 0x07)
+                                  (unchecked-int 0xe7)
                                   (unchecked-int 0xc0)
                                   (unchecked-int 0x00)]) => (contains {:version 25}))
 
        (fact "should lookup the layer"
              (maybe-parse-header [(unchecked-int 0xff)
-                                  (unchecked-int 0x07)
+                                  (unchecked-int 0xe7)
                                   (unchecked-int 0xc0)
                                   (unchecked-int 0x00)]) => (contains {:layer 1}))
 
