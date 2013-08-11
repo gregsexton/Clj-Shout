@@ -87,6 +87,16 @@
              (lookup-samplerate 12 2) => (throws IllegalArgumentException)
              (lookup-samplerate 2 3) => (throws AssertionError)))
 
+(facts "about calculating frame length from header"
+       (fact "should calculate frame length"
+             (frame-length {:samplerate 44100
+                            :layer 3
+                            :version 1}) => (roughly 26.1224489796 0.001)))
+
 (facts "about calculating frame size from header"
-       (future-fact "should calculate frame-size"
-             (frame-size (maybe-parse-header header-bytes)) => ???))
+       (fact "should calculate frame-size"
+             (frame-size {:samplerate 44100
+                          :layer 1
+                          :version 2
+                          :bitrate 192
+                          :padded? true}) => (roughly 212.979591837 0.001)))

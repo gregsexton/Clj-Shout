@@ -59,16 +59,14 @@
             1 :l1 2 :l2 3 :l3
             (throw (IllegalArgumentException.
                     (format "Unexpected layer: %s" layer))))]
-    (->> index (get lookup) v l)))
+    (get-in lookup [index v l])))
 
 (defn lookup-samplerate [version index]
   {:pre [(< index 3)]}
   (let [lookup {0 { 1 44100 2 22050 25 11025 }
                 1 { 1 48000 2 24000 25 12000 }
                 2 { 1 32000 2 16000 25 8000 }}]
-    (if-let [value (-> index
-                       (->> (get lookup))
-                       (get version))]
+    (if-let [value (get-in lookup [index version])]
       value
       (throw (IllegalArgumentException.
               (format "Illegal version: %s" version))))))
@@ -96,6 +94,31 @@
                         :original? (= (bit-extract head 4 1) 0)
                         :emphasis? (not= (bit-extract head 4 1) 0)})]
       header)))
+
+(defn lookup-samples-per-frame [{:keys [layer version]}]
+  (let [lookup {1  { 1 384, 2 1152, 3 1152 }
+                2  { 1 384, 2 1152, 3 576 }
+                25 { 1 384, 2 1152, 3 576 }}]
+    (get-in lookup [version layer])))
+
+(defn frame-length
+  "Calculate the frame length in milliseconds"
+  [{:keys [samplerate] :as header}]
+  (when-let [samples (lookup-samples-per-frame header)]
+    (* (/ samples samplerate) 1000)))
+
+(defn frame-size
+  "Calculate the frame size in bytes"
+  [{:keys [bitrate padded? layer] :as header}]
+  (let [samples (lookup-samples-per-frame header)
+        frame-length-seconds (/ (frame-length header) 1000)
+        bytes-per-second (/ (* bitrate 1000) 8)]
+    (+ (* frame-length-seconds
+          bytes-per-second)
+       ;; add padding slot
+       (if padded?
+         (if (= layer 1) 4 1)
+         0))))
 
 (deftype SynchronousMp3OutStream [stream]
   OutStream
