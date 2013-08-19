@@ -1,5 +1,5 @@
 (ns clout.stream.mp3-stream
-  (:require [clout.stream.stream :refer [OutStream]]))
+  (:require [clout.stream.stream :refer [OutStream] :as s]))
 
 (defn bit-extract
   "Extract certain bits from an integer returning them as an
@@ -75,6 +75,8 @@
   (and (:valid-sync? header)
        header))
 
+;;; TODO: should return nil if can't parse, currently throws assertion
+;;; exceptions
 (defn maybe-parse-header [[b1 b2 b3 b4]]
   (let [head (combine-bytes b1 b2 b3 b4)
         sync (bit-extract head 32 11)
@@ -95,11 +97,8 @@
                         :emphasis? (not= (bit-extract head 4 1) 0)})]
       header)))
 
-(defn lookup-samples-per-frame [{:keys [layer version]}]
-  (let [lookup {1  { 1 384, 2 1152, 3 1152 }
-                2  { 1 384, 2 1152, 3 576 }
-                25 { 1 384, 2 1152, 3 576 }}]
-    (get-in lookup [version layer])))
+(defn lookup-samples-per-frame [{:keys [layer]}]
+  (if (= layer 1) 384 1152))
 
 (defn frame-length
   "Calculate the frame length in milliseconds"
@@ -109,19 +108,19 @@
 
 (defn frame-size
   "Calculate the frame size in bytes"
-  [{:keys [bitrate padded? layer] :as header}]
+  [{:keys [bitrate samplerate padded? layer] :as header}]
   (let [samples (lookup-samples-per-frame header)
-        frame-length-seconds (/ (frame-length header) 1000)
-        bytes-per-second (/ (* bitrate 1000) 8)]
-    (+ (* frame-length-seconds
-          bytes-per-second)
-       ;; add padding slot
-       (if padded?
-         (if (= layer 1) 4 1)
-         0))))
+        slot-length (if (= layer 1) 4 1)]
+    (* (+ (quot (* samples (/ (* bitrate 1000) 8))
+                samplerate)
+          (if padded? 1 0))
+       slot-length)))
 
 (deftype SynchronousMp3OutStream [stream]
   OutStream
 
-  (write [this bytes])
-  (close [this]))
+  (write [this bytes]
+    (do-stuff bytes))
+
+  (close [this]
+    (s/close stream)))

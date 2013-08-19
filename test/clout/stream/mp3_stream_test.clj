@@ -93,10 +93,10 @@
                             :layer 3
                             :version 1}) => (roughly 26.1224489796 0.001)))
 
+
 (facts "about calculating frame size from header"
        (fact "should calculate frame-size"
              (frame-size {:samplerate 44100
-                          :layer 1
-                          :version 2
-                          :bitrate 192
-                          :padded? true}) => (roughly 212.979591837 0.001)))
+                          :padding false
+                          :layer 3
+                          :bitrate 128}) => 417))
