@@ -106,11 +106,29 @@
           (if padded? 1 0))
        slot-length)))
 
+(defn maybe-flush [buffer stream pause]
+  (when (> (count buffer) 4095)         ;4095 is arbitrary
+    (s/write stream buffer)
+    (Thread/sleep pause)
+    pause))
+
 (deftype SynchronousMp3OutStream [stream]
   OutStream
 
   (write [this bytes]
-    (do-stuff bytes))
+    (loop [bytes bytes
+           buffer []
+           pause 0]
+      (when-not (empty? bytes)
+        (if (maybe-flush buffer stream pause)
+          (recur bytes [] 0)
+          (if-let [header (maybe-parse-header (take 4 bytes))]
+            (let [frame-size (frame-size header)]
+              (recur (drop frame-size bytes)
+                     (concat buffer (take frame-size bytes))
+                     (+ pause (frame-length header))))
+            ;; error, skip this byte
+            (recur (rest bytes) buffer pause))))))
 
   (close [this]
     (s/close stream)))
