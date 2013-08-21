@@ -34,7 +34,7 @@
 
        (fact "should return nil given an invalid header"
              (maybe-parse-header [(unchecked-int 0xfd)
-                                  (unchecked-int 0xe7)
+                                  (unchecked-int 0x0)
                                   (unchecked-int 0xc0)
                                   (unchecked-int 0x00)]) => nil)
 
@@ -73,19 +73,19 @@
              (lookup-bitrate 1 3 8) => 112
              (lookup-bitrate 2 2 11) => 112
              ;; version out of range
-             (lookup-bitrate 4 2 1) => (throws IllegalArgumentException)
+             (lookup-bitrate 4 2 1) => nil
              ;; layer out of range
-             (lookup-bitrate 1 4 1) => (throws IllegalArgumentException)
-             (lookup-bitrate 1 2 0) => (throws AssertionError)
-             (lookup-bitrate 1 2 15) => (throws AssertionError)
-             (lookup-bitrate 1 2 16) => (throws AssertionError))
+             (lookup-bitrate 1 4 1) => nil
+             (lookup-bitrate 1 2 0) => nil
+             (lookup-bitrate 1 2 15) => nil
+             (lookup-bitrate 1 2 16) => nil)
 
        (fact "should lookup the samplesize correctly"
              (lookup-samplerate 1 0) => 44100
              (lookup-samplerate 2 1) => 24000
              (lookup-samplerate 25 2) => 8000
-             (lookup-samplerate 12 2) => (throws IllegalArgumentException)
-             (lookup-samplerate 2 3) => (throws AssertionError)))
+             (lookup-samplerate 12 2) => nil
+             (lookup-samplerate 2 3) => nil))
 
 (facts "about calculating frame length from header"
        (fact "should calculate frame length"
