@@ -112,7 +112,7 @@
     (Thread/sleep pause)
     pause))
 
-(deftype SynchronousMp3OutStream [stream]
+(deftype DelayedMp3OutStream [stream]
   OutStream
 
   (write [this bytes]
