@@ -94,7 +94,7 @@
   "Calculate the frame length in milliseconds"
   [{:keys [samplerate] :as header}]
   (when-let [samples (lookup-samples-per-frame header)]
-    (* (/ samples samplerate) 1000)))
+    (int (* (/ samples samplerate) 1000))))
 
 (defn frame-size
   "Calculate the frame size in bytes"

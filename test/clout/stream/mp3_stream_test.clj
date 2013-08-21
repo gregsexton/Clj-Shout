@@ -90,8 +90,7 @@
 (facts "about calculating frame length from header"
        (fact "should calculate frame length"
              (frame-length {:samplerate 44100
-                            :layer 3
-                            :version 1}) => (roughly 26.1224489796 0.001)))
+                            :layer 3}) => 26))
 
 
 (facts "about calculating frame size from header"
