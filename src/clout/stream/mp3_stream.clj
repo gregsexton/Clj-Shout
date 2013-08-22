@@ -106,29 +106,36 @@
           (if padded? 1 0))
        slot-length)))
 
-(defn maybe-flush [buffer stream pause]
-  (when (> (count buffer) 4095)         ;4095 is arbitrary
-    (s/write stream buffer)
-    (Thread/sleep pause)
-    pause))
+(defn buffer-built? [buffer]
+  ;; 4095 is arbitrary
+  (> (count buffer) 4095))
+
+(defn build-buffer
+  ([bytes]
+     (build-buffer bytes [] 0))
+  ([bytes buffer pause]
+     (if (or (buffer-built? buffer) (empty? bytes))
+       {:buffer buffer :more bytes :pause pause}
+       (if-let [header (maybe-parse-header (take 4 bytes))]
+         (let [frame-size (frame-size header)]
+           (recur (drop frame-size bytes)
+                  (concat buffer (take frame-size bytes))
+                  (+ pause (frame-length header))))
+         ;; error, skip this byte
+         (recur (rest bytes) buffer pause)))))
+
+(defn create-real-time-seq [bytes]
+  (lazy-seq
+   (when-let [bs (seq bytes)]
+     (let [{:keys [buffer more pause]} (build-buffer bs)]
+       (Thread/sleep pause)
+       (concat buffer (create-real-time-seq more))))))
 
 (deftype DelayedMp3OutStream [stream]
   OutStream
 
   (write [this bytes]
-    (loop [bytes bytes
-           buffer []
-           pause 0]
-      (when-not (empty? bytes)
-        (if (maybe-flush buffer stream pause)
-          (recur bytes [] 0)
-          (if-let [header (maybe-parse-header (take 4 bytes))]
-            (let [frame-size (frame-size header)]
-              (recur (drop frame-size bytes)
-                     (concat buffer (take frame-size bytes))
-                     (+ pause (frame-length header))))
-            ;; error, skip this byte
-            (recur (rest bytes) buffer pause))))))
+    (s/write stream (create-real-time-seq bytes)))
 
   (close [this]
     (s/close stream)))
