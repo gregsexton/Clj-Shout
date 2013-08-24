@@ -7,7 +7,6 @@
              (create-basic-auth-header "Aladdin" "open sesame") =>
              "Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="))
 
-
 (facts "about map url encoding"
        (fact "should serialize a single key and value"
              (url-encode-map {"foo" "bar"} ";") =>
