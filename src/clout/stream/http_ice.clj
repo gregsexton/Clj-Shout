@@ -92,8 +92,6 @@
           (byte-array))
      back]))
 
-;;; interface:
-
 (deftype IceHttpOutStream [conn]
   OutStream
 
