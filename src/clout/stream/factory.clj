@@ -4,7 +4,7 @@
             [clout.stream.stream :refer :all]))
 
 (defmethod create-format-stream :mp3 [session stream]
-  (mp3/->SynchronousMp3OutStream stream))
+  (mp3/->DelayedMp3OutStream stream))
 
 (defmethod create-protocol-stream :http [session]
   (http/create-protocol-stream session))
