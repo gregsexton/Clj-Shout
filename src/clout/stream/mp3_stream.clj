@@ -6,8 +6,8 @@
   integer. start is how many bits from the right to look at, length is
   the number of bits from this position to extract."
   [x start length]
-  (let [mask (reduce #(bit-or %2 (bit-shift-left %1 1))
-                     0 (repeat length 1))]
+  (let [anchor (bit-shift-left 1 (dec length))
+        mask (bit-xor anchor (dec anchor))]
     (bit-and (bit-shift-right x (- start length)) mask)))
 
 (defn combine-bytes [b1 b2 b3 b4]
@@ -106,29 +106,39 @@
           (if padded? 1 0))
        slot-length)))
 
-(defn buffer-built? [buffer]
+(defn buffer-built? [buffer-size]
   ;; 4095 is arbitrary
-  (> (count buffer) 4095))
+  (> buffer-size 4095))
 
 (defn build-buffer
   ([bytes]
-     (build-buffer bytes [] 0))
-  ([bytes buffer pause]
-     (if (or (buffer-built? buffer) (empty? bytes))
+     (build-buffer bytes [] 0 0))
+  ([bytes buffer buffer-size pause]
+     (if (or (buffer-built? buffer-size) (empty? bytes))
        {:buffer buffer :more bytes :pause pause}
        (if-let [header (maybe-parse-header (take 4 bytes))]
          (let [frame-size (frame-size header)]
            (recur (drop frame-size bytes)
                   (concat buffer (take frame-size bytes))
+                  (+ frame-size buffer-size)
                   (+ pause (frame-length header))))
          ;; error, skip this byte
-         (recur (rest bytes) buffer pause)))))
+         (recur (rest bytes) buffer buffer-size pause)))))
+
+(defmacro with-duration [body]
+  `(let [start# (System/currentTimeMillis)
+         {pause# :pause :as res#} ~body
+         length# (- (System/currentTimeMillis) start#)
+         s# (- pause# length#)]
+     (when (pos? s#)
+       (Thread/sleep s#))
+     res#))
 
 (defn create-real-time-seq [bytes]
   (lazy-seq
    (when-let [bs (seq bytes)]
-     (let [{:keys [buffer more pause]} (build-buffer bs)]
-       (Thread/sleep pause)
+     (let [{:keys [buffer more]} (with-duration
+                                   (build-buffer bs))]
        (concat buffer (create-real-time-seq more))))))
 
 (deftype DelayedMp3OutStream [stream]

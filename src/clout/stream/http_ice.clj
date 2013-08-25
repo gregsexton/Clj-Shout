@@ -89,7 +89,7 @@
   (let [[front back] (split-at 4096 bytes)]
     [(->> front
           (map unchecked-byte)
-          (byte-array))
+          (byte-array 4096))
      back]))
 
 (deftype IceHttpOutStream [conn]
