@@ -141,11 +141,27 @@
                                    (build-buffer bs))]
        (concat buffer (create-real-time-seq more))))))
 
-(deftype DelayedMp3OutStream [stream]
+;;; todo: factor out commonalities
+(defn create-seq [bytes]
+  (lazy-seq
+   (when-let [bs (seq bytes)]
+     (let [{:keys [buffer more]} (build-buffer bs)]
+       (concat buffer (create-seq more))))))
+
+(deftype RealTimeMp3OutStream [stream]
   OutStream
 
   (write [this bytes]
     (s/write stream (create-real-time-seq bytes)))
+
+  (close [this]
+    (s/close stream)))
+
+(deftype Mp3OutStream [stream]
+  OutStream
+
+  (write [this bytes]
+    (s/write stream (create-seq bytes)))
 
   (close [this]
     (s/close stream)))
