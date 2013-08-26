@@ -106,24 +106,22 @@
           (if padded? 1 0))
        slot-length)))
 
-(defn buffer-built? [buffer-size]
+(defn buffer-built? [buffer]
   ;; 4095 is arbitrary
-  (> buffer-size 4095))
+  (> (count buffer) 4095))
 
-(defn build-buffer
-  ([bytes]
-     (build-buffer bytes [] 0 0))
-  ([bytes buffer buffer-size pause]
-     (if (or (buffer-built? buffer-size) (empty? bytes))
-       {:buffer buffer :more bytes :pause pause}
-       (if-let [header (maybe-parse-header (take 4 bytes))]
-         (let [frame-size (frame-size header)]
-           (recur (drop frame-size bytes)
-                  (concat buffer (take frame-size bytes))
-                  (+ frame-size buffer-size)
-                  (+ pause (frame-length header))))
-         ;; error, skip this byte
-         (recur (rest bytes) buffer buffer-size pause)))))
+(defn build-buffer [bytes]
+  (letfn [(rec [bytes buffer pause]
+            (if (or (buffer-built? buffer) (empty? bytes))
+              {:buffer buffer :more bytes :pause pause}
+              (if-let [header (maybe-parse-header (take 4 bytes))]
+                (let [frame-size (frame-size header)]
+                  (recur (drop frame-size bytes)
+                         (concat buffer (take frame-size bytes))
+                         (+ pause (frame-length header))))
+                ;; error, skip this byte
+                (recur (rest bytes) buffer pause))))]
+    (rec bytes [] 0)))
 
 (defmacro with-duration [body]
   `(let [start# (System/currentTimeMillis)
