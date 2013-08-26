@@ -82,27 +82,19 @@
               (format "Could not connect using session [%s]. Response: %s"
                       session response))))))
 
-(defn close-connection [{:keys [ch]}]
-  (l/close ch))
+(defn close-connection [{ch :ch :as conn}]
+  (when (l/close ch)
+    (assoc conn :connected? false)))
 
-(defn build-byte-array [bytes]
-  (let [[front back] (split-at 4096 bytes)]
-    [(->> front
-          (map unchecked-byte)
-          (byte-array 4096))
-     back]))
-
-(deftype IceHttpOutStream [conn]
+(deftype IceHttpOutStream [conn]        ;sink
   OutStream
 
   (write [_ bytes]
     (when-not (:connected? conn)
       (throw (IllegalStateException.
               (format "Connection [%s] has not been connected." conn))))
-    (when (seq bytes)
-      (let [[buffer more] (build-byte-array bytes)]
-        (l/enqueue (:ch conn) buffer)
-        (recur more))))
+    (when (formats/bytes? bytes)
+      (l/enqueue (:ch conn bytes))))
 
   (close [_]
     (close-connection conn)))

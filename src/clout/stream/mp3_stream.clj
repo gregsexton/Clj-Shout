@@ -123,13 +123,14 @@
                 (recur (rest bytes) buffer pause))))]
     (rec bytes [] 0)))
 
-(defmacro with-duration [body]
-  `(let [start# (System/currentTimeMillis)
-         {pause# :pause :as res#} ~body
-         length# (- (System/currentTimeMillis) start#)
-         s# (- pause# length#)]
-     (when (pos? s#)
-       (Thread/sleep s#))
+(defmacro with-duration [start pause & body]
+  `(let [res# (do ~@body)
+         length# (- (System/currentTimeMillis) ~start)
+         s# (- ~pause length#)]
+     (if (pos? s#)
+       (Thread/sleep s#)
+       (throw (IllegalStateException.
+               (format "Trying to pause for a negative duration: %s" s#))))
      res#))
 
 (defn create-seq
@@ -138,26 +139,48 @@
   ([bytes build-buffer]
      (lazy-seq
       (when-let [bs (seq bytes)]
-        (let [{:keys [buffer more]} (build-buffer bs)]
-          (concat buffer (create-seq more build-buffer)))))))
+        (let [{:keys [buffer more pause]} (build-buffer bs)]
+          (cons {:buffer buffer
+                 :pause pause}
+                (create-seq more build-buffer)))))))
 
-(defn create-real-time-seq [bytes]
-  (create-seq bytes #(with-duration (build-buffer %))))
+(defn build-byte-array [bytes]
+  (->> bytes
+       (map unchecked-byte)
+       (byte-array)))
+
+(defn write-bytes [writer bytes]
+  (letfn [(rec [buffers]
+            (let [start (System/currentTimeMillis)]
+              (when-let [{:keys [buffer pause]} (first buffers)]
+                (writer (build-byte-array buffer) pause start)
+                (recur (rest buffers)))))]
+    (rec (create-seq bytes))))
 
 (deftype Mp3OutStream [stream]
   OutStream
 
-  (write [this bytes]
-    (s/write stream (create-seq bytes)))
+  (write [_ bytes]
+    ;; takes a (potentially infininte) sequence of bytes and writes
+    ;; these to the supplied stream in discrete byte array
+    ;; chunks. Useful mostly for debugging or flooding a server
+    (write-bytes (fn [buffer _ _] (s/write stream buffer)) bytes))
 
-  (close [this]
+  (close [_]
     (s/close stream)))
 
 (deftype RealTimeMp3OutStream [stream]
   OutStream
 
-  (write [this bytes]
-    (s/write stream (create-real-time-seq bytes)))
+  (write [_ bytes]
+    ;; takes a (potentially infininte) sequence of bytes and writes
+    ;; these to the supplied stream in discrete byte array
+    ;; chunks. Parses the bytes for mp3 headers and sleeps the thread
+    ;; so as to write in 'real time'
+    (write-bytes (fn [buffer pause start]
+                   (with-duration start pause
+                     (s/write stream buffer)))
+                 bytes))
 
-  (close [this]
+  (close [_]
     (s/close stream)))
