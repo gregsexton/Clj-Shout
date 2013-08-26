@@ -134,34 +134,32 @@
        (Thread/sleep s#))
      res#))
 
+(defn create-seq
+  ([bytes]
+     (create-seq bytes build-buffer))
+  ([bytes build-buffer]
+     (lazy-seq
+      (when-let [bs (seq bytes)]
+        (let [{:keys [buffer more]} (build-buffer bs)]
+          (concat buffer (create-seq more build-buffer)))))))
+
 (defn create-real-time-seq [bytes]
-  (lazy-seq
-   (when-let [bs (seq bytes)]
-     (let [{:keys [buffer more]} (with-duration
-                                   (build-buffer bs))]
-       (concat buffer (create-real-time-seq more))))))
-
-;;; todo: factor out commonalities
-(defn create-seq [bytes]
-  (lazy-seq
-   (when-let [bs (seq bytes)]
-     (let [{:keys [buffer more]} (build-buffer bs)]
-       (concat buffer (create-seq more))))))
-
-(deftype RealTimeMp3OutStream [stream]
-  OutStream
-
-  (write [this bytes]
-    (s/write stream (create-real-time-seq bytes)))
-
-  (close [this]
-    (s/close stream)))
+  (create-seq bytes #(with-duration (build-buffer %))))
 
 (deftype Mp3OutStream [stream]
   OutStream
 
   (write [this bytes]
     (s/write stream (create-seq bytes)))
+
+  (close [this]
+    (s/close stream)))
+
+(deftype RealTimeMp3OutStream [stream]
+  OutStream
+
+  (write [this bytes]
+    (s/write stream (create-real-time-seq bytes)))
 
   (close [this]
     (s/close stream)))
