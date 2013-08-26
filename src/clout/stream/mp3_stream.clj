@@ -127,11 +127,9 @@
   `(let [res# (do ~@body)
          length# (- (System/currentTimeMillis) ~start)
          s# (- ~pause length#)]
-     (if (pos? s#)
-       (Thread/sleep s#)
-       (throw (IllegalStateException.
-               (format "Trying to pause for a negative duration: %s" s#))))
-     res#))
+     (if-not (pos? s#)
+       (Math/abs s#)                    ;return excess
+       (do (Thread/sleep s#) 0))))
 
 (defn create-seq
   ([bytes]
@@ -150,12 +148,13 @@
        (byte-array)))
 
 (defn write-bytes [writer bytes]
-  (letfn [(rec [buffers]
+  (letfn [(rec [buffers excess-pause]
             (let [start (System/currentTimeMillis)]
               (when-let [{:keys [buffer pause]} (first buffers)]
-                (writer (build-byte-array buffer) pause start)
-                (recur (rest buffers)))))]
-    (rec (create-seq bytes))))
+                (let [excess-pause (writer (build-byte-array buffer)
+                                           (- pause excess-pause) start)]
+                  (recur (rest buffers) excess-pause)))))]
+    (rec (create-seq bytes) 0)))
 
 (deftype Mp3OutStream [stream]
   OutStream
