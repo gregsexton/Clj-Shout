@@ -18,46 +18,47 @@
              (bit-shift-left b3 8)
              b4))))
 
-(defn lookup-version [raw]
-  (condp = raw
-    0 25
-    1 nil
-    2 2
-    3 1
-    nil))
+(defn get-depth [m]
+  (letfn [(rec [m cnt]
+            (if-not (map? m)
+              cnt
+              (recur (second (first m)) (inc cnt))))]
+    (rec m 0)))
 
-(defn lookup-layer [raw]
-  (condp = raw
-    0 nil
-    1 3
-    2 2
-    3 1
-    nil))
+(defmacro deflookup
+  ([lname transforms table]
+     (let [gensyms (apply vector (for [_ (range (get-depth table))] (gensym)))
+           name (symbol (apply str (concat "lookup-" (name lname))))
+           ts (map #(if (= % '_) 'identity %) transforms)]
+       `(defn ~name ~gensyms
+          (get-in ~table                ;evaluated more than once
+                  [~@(map list (concat ts (repeat identity)) gensyms)])))))
 
-(defn lookup-bitrate [version layer index]
-  (let [lookup {1   {:v1 {:l1 32  :l2 32  :l3 32}  :v2 {:l1 32  :l2 8   :l3 8}}
-                2   {:v1 {:l1 64  :l2 48  :l3 40}  :v2 {:l1 48  :l2 16  :l3 16}}
-                3   {:v1 {:l1 96  :l2 56  :l3 48}  :v2 {:l1 56  :l2 24  :l3 24}}
-                4   {:v1 {:l1 128 :l2 64  :l3 56}  :v2 {:l1 64  :l2 32  :l3 32}}
-                5   {:v1 {:l1 160 :l2 80  :l3 64}  :v2 {:l1 80  :l2 40  :l3 40}}
-                6   {:v1 {:l1 192 :l2 96  :l3 80}  :v2 {:l1 96  :l2 48  :l3 48}}
-                7   {:v1 {:l1 224 :l2 112 :l3 96}  :v2 {:l1 112 :l2 56  :l3 56}}
-                8   {:v1 {:l1 256 :l2 128 :l3 112} :v2 {:l1 128 :l2 64  :l3 64}}
-                9   {:v1 {:l1 288 :l2 160 :l3 128} :v2 {:l1 144 :l2 80  :l3 80}}
-                10  {:v1 {:l1 320 :l2 192 :l3 160} :v2 {:l1 160 :l2 96  :l3 96}}
-                11  {:v1 {:l1 352 :l2 224 :l3 192} :v2 {:l1 176 :l2 112 :l3 112}}
-                12  {:v1 {:l1 384 :l2 256 :l3 224} :v2 {:l1 192 :l2 128 :l3 128}}
-                13  {:v1 {:l1 416 :l2 320 :l3 256} :v2 {:l1 224 :l2 144 :l3 144}}
-                14  {:v1 {:l1 448 :l2 384 :l3 320} :v2 {:l1 256 :l2 160 :l3 160}}}
-        v (condp = version 1 :v1 2 :v2 25 :v2 nil)
-        l (condp = layer 1 :l1 2 :l2 3 :l3 nil)]
-    (get-in lookup [index v l])))
+(deflookup version [] {0 25, 2 2, 3 1})
 
-(defn lookup-samplerate [version index]
-  (let [lookup {0 { 1 44100 2 22050 25 11025 }
-                1 { 1 48000 2 24000 25 12000 }
-                2 { 1 32000 2 16000 25 8000 }}]
-    (get-in lookup [index version])))
+(deflookup layer [] {1 3, 2 2, 3 1})
+
+(deflookup bitrate [_
+                    #(condp = % 1 :v1 2 :v2 25 :v2 nil)
+                    #(condp = % 1 :l1 2 :l2 3 :l3 nil)]
+  {1   {:v1 {:l1 32  :l2 32  :l3 32}  :v2 {:l1 32  :l2 8   :l3 8}}
+   2   {:v1 {:l1 64  :l2 48  :l3 40}  :v2 {:l1 48  :l2 16  :l3 16}}
+   3   {:v1 {:l1 96  :l2 56  :l3 48}  :v2 {:l1 56  :l2 24  :l3 24}}
+   4   {:v1 {:l1 128 :l2 64  :l3 56}  :v2 {:l1 64  :l2 32  :l3 32}}
+   5   {:v1 {:l1 160 :l2 80  :l3 64}  :v2 {:l1 80  :l2 40  :l3 40}}
+   6   {:v1 {:l1 192 :l2 96  :l3 80}  :v2 {:l1 96  :l2 48  :l3 48}}
+   7   {:v1 {:l1 224 :l2 112 :l3 96}  :v2 {:l1 112 :l2 56  :l3 56}}
+   8   {:v1 {:l1 256 :l2 128 :l3 112} :v2 {:l1 128 :l2 64  :l3 64}}
+   9   {:v1 {:l1 288 :l2 160 :l3 128} :v2 {:l1 144 :l2 80  :l3 80}}
+   10  {:v1 {:l1 320 :l2 192 :l3 160} :v2 {:l1 160 :l2 96  :l3 96}}
+   11  {:v1 {:l1 352 :l2 224 :l3 192} :v2 {:l1 176 :l2 112 :l3 112}}
+   12  {:v1 {:l1 384 :l2 256 :l3 224} :v2 {:l1 192 :l2 128 :l3 128}}
+   13  {:v1 {:l1 416 :l2 320 :l3 256} :v2 {:l1 224 :l2 144 :l3 144}}
+   14  {:v1 {:l1 448 :l2 384 :l3 320} :v2 {:l1 256 :l2 160 :l3 160}}})
+
+(deflookup samplerate [] {0 { 1 44100 2 22050 25 11025 }
+                          1 { 1 48000 2 24000 25 12000 }
+                          2 { 1 32000 2 16000 25 8000 }})
 
 (defn validate-header [header]
   (or (and (:valid-sync? header)
