@@ -94,7 +94,7 @@
       (throw (IllegalStateException.
               (format "Connection [%s] has not been connected." conn))))
     (when (formats/bytes? bytes)
-      (l/enqueue (:ch conn bytes))))
+      (l/enqueue (:ch conn) bytes)))
 
   (close [_]
     (close-connection conn)))

@@ -125,8 +125,9 @@
     (rec bytes [] 0)))
 
 (defmacro with-duration [start pause & body]
-  `(let [res# (do ~@body)
-         length# (- (System/currentTimeMillis) ~start)
+  `(let [start# ~start
+         res# (do ~@body)
+         length# (- (System/currentTimeMillis) start#)
          s# (- ~pause length#)]
      (if-not (pos? s#)
        (Math/abs s#)                    ;return excess
@@ -154,7 +155,7 @@
               (when-let [{:keys [buffer pause]} (first buffers)]
                 (let [excess-pause (writer (build-byte-array buffer)
                                            (- pause excess-pause) start)]
-                  (recur (rest buffers) excess-pause)))))]
+                  (recur (rest buffers) (or excess-pause 0))))))]
     (rec (create-seq bytes) 0)))
 
 (deftype Mp3OutStream [stream]
@@ -177,8 +178,8 @@
     ;; these to the supplied stream in discrete byte array
     ;; chunks. Parses the bytes for mp3 headers and sleeps the thread
     ;; so as to write in 'real time'
-    (write-bytes (fn [buffer pause start]
-                   (with-duration start pause
+    (write-bytes (fn [buffer duration start]
+                   (with-duration start duration
                      (s/write stream buffer)))
                  bytes))
 
