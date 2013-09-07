@@ -37,5 +37,5 @@
   should be created using shout.session/create-shout-session. The
   source may be anything that clojure.java.io/input-stream can take."
   [session source]
-  (stream/write (create-out-stream session)
-                (byte-seq source)))
+  (with-open [stream (create-out-stream session)]
+    (stream/write stream (byte-seq source))))
