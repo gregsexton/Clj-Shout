@@ -1,11 +1,11 @@
-(ns clout.session)
+(ns shout.session)
 
 (def default-host "localhost")
 (def default-port 8000)
 (def default-format :mp3)
 (def default-protocol :http)
 (def default-user "source")
-(def default-useragent "clout")
+(def default-useragent "shout")
 (def default-mount "/example.mp3")
 (def default-name "no name")
 
@@ -34,7 +34,7 @@
 (defvalue with-url :url nil)
 (defvalue with-description :description nil)
 
-(defn create-clout-session [& pairs]
+(defn create-shout-session [& pairs]
   (let [default-map (into {} (list (with-host nil)
                                    (with-port nil)
                                    (with-format nil)

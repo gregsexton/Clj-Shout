@@ -12,3 +12,4 @@ pom.xml.asc
 .lein-repl-history
 /test/clout/hand_test.clj
 /.nrepl-port
+/test/shout/hand_test.clj

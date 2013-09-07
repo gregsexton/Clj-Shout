@@ -1,4 +1,4 @@
-(ns clout.stream.stream)
+(ns shout.stream.stream)
 
 (defprotocol OutStream
   "An output stream."

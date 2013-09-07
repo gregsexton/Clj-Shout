@@ -1,11 +1,11 @@
-(ns clout.stream.http-ice
+(ns shout.stream.http-ice
   (:require [aleph.tcp :refer [tcp-client]]
             [aleph.formats :as formats]
             [clojure.data.codec.base64 :as b64]
             [lamina.core :as l]
             [gloss.core :as gloss]
             [clojure.string :as str]
-            [clout.stream.stream :refer [OutStream]])
+            [shout.stream.stream :refer [OutStream]])
   (:import [java.net URLEncoder]))
 
 (def content-types {:mp3 "audio/mpeg"})

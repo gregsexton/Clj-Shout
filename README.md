@@ -16,15 +16,15 @@ It has been tested and works well with Icecast 2.3.3.
 
 ## Usage
 
-This is the basic usage. See clout.session for further options that
-can be provided to create-clout-session. See clout.core for functions
+This is the basic usage. See shout.session for further options that
+can be provided to create-shout-session. See shout.core for functions
 that can be used to actually send data to a server.
 
-    (ns clout.test
-      (:require [clout.session :refer :all]
-                [clout.core :as core]))
+    (ns shout.test
+      (:require [shout.session :refer :all]
+                [shout.core :as core]))
 
-    (def session (create-clout-session
+    (def session (create-shout-session
                   (with-host "localhost")
                   (with-port 8000)
                   (with-password "hackme")

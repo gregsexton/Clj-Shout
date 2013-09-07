@@ -1,5 +1,5 @@
-(ns clout.stream.mp3-stream
-  (:require [clout.stream.stream :refer [OutStream] :as s]))
+(ns shout.stream.mp3-stream
+  (:require [shout.stream.stream :refer [OutStream] :as s]))
 
 (defn bit-extract
   "Extract certain bits from an integer returning them as an

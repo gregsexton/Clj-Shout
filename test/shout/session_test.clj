@@ -1,37 +1,37 @@
-(ns clout.session-test
+(ns shout.session-test
   (:use midje.sweet
-        clout.session))
+        shout.session))
 
 (facts "about creating a new session"
        (fact "should provide all defaults"
-             (create-clout-session) => (contains
+             (create-shout-session) => (contains
                                         {:hostname "localhost"
                                          :port 8000
                                          :stream-format :mp3
                                          :protocol :http
                                          :user "source"
-                                         :agent "clout"
+                                         :agent "shout"
                                          :name "no name"
                                          :audio-info {}
                                          :public? false
                                          :mount "/example.mp3"}))
 
        (fact "should provide defaults for missing builder values"
-              (create-clout-session
+              (create-shout-session
                (with-port 1234)) => (contains
                                      {:hostname "localhost"
                                       :port 1234
                                       :stream-format :mp3
                                       :protocol :http
                                       :user "source"
-                                      :agent "clout"
+                                      :agent "shout"
                                       :mount "/example.mp3"
                                       :public? false
                                       :audio-info {}
                                       :name "no name"}))
 
        (fact "should provide a readable builder syntax for setting every possible option at once"
-             (create-clout-session
+             (create-shout-session
               (with-host "host")
               (with-port 1234)
               (with-format :mp3)

@@ -1,6 +1,6 @@
-(ns clout.stream.mp3-stream-test
+(ns shout.stream.mp3-stream-test
   (:use midje.sweet
-        clout.stream.mp3-stream))
+        shout.stream.mp3-stream))
 
 (facts "about bit-extraction"
        (fact "should deal with the low end"

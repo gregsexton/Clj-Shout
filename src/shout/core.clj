@@ -1,7 +1,7 @@
-(ns clout.core
+(ns shout.core
   (:require
-   [clout.stream.stream :as stream]
-   [clout.stream.factory]
+   [shout.stream.stream :as stream]
+   [shout.stream.factory]
    [clojure.java.io :as io])
   (:import [java.io InputStream]))
 
@@ -34,7 +34,7 @@
 
 (defn send-source
   "Send a single source to the server as specified by session. Session
-  should be created using clout.session/create-clout-session. The
+  should be created using shout.session/create-shout-session. The
   source may be anything that clojure.java.io/input-stream can take."
   [session source]
   (stream/write (create-out-stream session)
