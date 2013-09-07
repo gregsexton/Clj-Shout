@@ -5,15 +5,11 @@
    [clojure.java.io :as io])
   (:import [java.io InputStream]))
 
-(defn create-out-stream [session]
+(defn- create-out-stream [session]
   (stream/create-format-stream
    session
    (stream/create-protocol-stream session)))
 
-;;; todo: implement using chunked sequences? Will this help performance?
-;;; (take 1 (map #(do (print \.) %) (range 32)))
-;;; (take 1 (map #(do (print \.) %) (create-byte-seq (create-m))))
-;;; dorun on this spikes cpu => not i/o bound: room for improvement
 (defn- create-byte-seq-from-stream
   "Create a lazy sequence of bytes from an input stream. Once the
   sequence has been fully realized the source stream is closed."
@@ -33,9 +29,13 @@
    (when-let [stream (f)]
      (create-byte-seq-from-stream stream))))
 
-;;; todo: concatenating here kills performance, which seems not to
-;;; grow linearly. Why?
-(defn byte-seq [sources]
-  (reduce #(concat %1 (create-byte-seq
-                       (fn [] (io/input-stream %2))))
-          nil sources))
+(defn- byte-seq [source]
+  (create-byte-seq (fn [] (io/input-stream source))))
+
+(defn send-source
+  "Send a single source to the server as specified by session. Session
+  should be created using clout.session/create-clout-session. The
+  source may be anything that clojure.java.io/input-stream can take."
+  [session source]
+  (stream/write (create-out-stream session)
+                (byte-seq source)))
