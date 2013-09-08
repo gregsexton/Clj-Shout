@@ -5,6 +5,20 @@ library. You can use this library to write a source client, like
 [ices](http://www.icecast.org/ices.php), for sending media to a
 streaming server.
 
+## Releases and Dependency Information
+
+Leiningen
+
+    [shout "0.1.1"]
+
+Maven
+
+    <dependency>
+      <groupId>shout</groupId>
+      <artifactId>shout</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+
 ## Status
 
 This library should be treated as beta.
