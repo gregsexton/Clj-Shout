@@ -1,4 +1,4 @@
-(defproject shout "0.1.0"
+(defproject shout "0.1.1"
   :description "A Clojure port of libshout"
   :url "https://github.com/gregsexton/Clj-Shout"
   :license {:name "Eclipse Public License"
