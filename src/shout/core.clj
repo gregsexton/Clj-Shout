@@ -62,18 +62,44 @@
    :session session
    :current-source (atom 0)})
 
-(defn send-context
-  "Idempotently begin sending a context's data to the context's
-  session. This will happen asynchronously and return a new context."
-  [context]
-  (with-open [stream (create-out-stream (:session context))]
-    (doseq [source (->> context :playlist deref (map :source))]
-      (stream/write stream (byte-seq source)))))
+(defn reset-current-source!
+  "Reset the index of the currently playing source to idx."
+  [context idx]
+  {:pre [(>= 0 idx)]}
+  (reset! (:current-source context) idx)
+  context)
 
-(def resume-context
-  "Idempotently resume sending the context's data to the context's
-  session. This will happen asynchronously and return a new context."
-  send-context)
+;;; TODO: currently the control over the currently playing source is
+;;; too coarse (it's at the level of the source). I need information
+;;; at the byte level to be able to pause and resume playing, in the
+;;; event of an error or if the user decides to pause. This will
+;;; require that the stream is able to provide the information on how
+;;; many bytes it has consumed.
+
+(defn- sync-send-playlist [playlist session source-idx]
+  (with-open [stream (create-out-stream session)]
+    (doseq [source (->> playlist deref (drop @source-idx) (map :source))]
+      (stream/write stream (byte-seq source))
+      (swap! source-idx inc))))
+
+;;; TODO: using indexes is pretty horrible. apart from anything, it
+;;; results in the client getting disconnected when you swap out the
+;;; index. Should be treating this as an infinite sequence of lazy
+;;; bytes where we can change the generator on the fly.
+
+(defn send-context
+  "Begin sending a context's data to the context's session. This will
+  happen asynchronously and return a new context. If the context is
+  already streaming it will be stopped first."
+  ([context]
+     (send-context @(:current-source context)))
+  ([context idx]
+     (when (future? (:future context)) (future-cancel (:future context)))
+     (reset! (:current-source context) idx)
+     (assoc context
+       :future (future (sync-send-playlist (:playlist context)
+                                           (:session context)
+                                           (:current-source context))))))
 
 (defn append-to-playlist
   "Append source to playlist."
