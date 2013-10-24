@@ -95,11 +95,11 @@
      (send-context @(:current-source context)))
   ([context idx]
      (when (future? (:future context)) (future-cancel (:future context)))
-     (reset! (:current-source context) idx)
      (assoc context
        :future (future (sync-send-playlist (:playlist context)
                                            (:session context)
-                                           (:current-source context))))))
+                                           (:current-source
+                                            (reset-current-source! context idx)))))))
 
 (defn append-to-playlist
   "Append source to playlist."
