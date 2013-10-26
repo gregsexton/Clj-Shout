@@ -10,27 +10,43 @@
    session
    (stream/create-protocol-stream session)))
 
-(defn- create-byte-seq-from-stream
-  "Create a lazy sequence of bytes from an input stream. Once the
-  sequence has been fully realized the source stream is closed."
+(defn- input-stream-generator
   [^InputStream stream]
-  (lazy-seq
-   (let [b (.read stream)]
-     (if (= -1 b)
-       (do (.close stream) nil)
-       (cons b (create-byte-seq-from-stream stream))))))
+  (fn []
+    (let [b (.read stream)]
+      (if (= -1 b)
+        (do (.close stream) nil)
+        b))))
 
-(defn- create-byte-seq
-  "Create a lazy byte seq from an input stream factory function. This
-  will be evaluated lazily to allow creating the input stream only on
-  demand."
-  [f]
-  (lazy-seq
-   (when-let [stream (f)]
-     (create-byte-seq-from-stream stream))))
+(defn- source-generator [source]
+  ;; NOT thread-safe. compare and set and STM don't really help as I
+  ;; don't want to create more than one input stream. Would have to
+  ;; lock for thread safety.
+  (let [f (atom nil)]
+    (fn []
+      (if @f (@f)
+          (do (reset! f (-> source
+                            io/input-stream
+                            input-stream-generator))
+              (recur))))))
 
-(defn- byte-seq [source]
-  (create-byte-seq (fn [] (io/input-stream source))))
+(defn- composite-generator [generators]
+  (let [generators (ref generators)]
+    (fn []
+      (dosync
+       (when-let [gen (first @generators)]
+         (if-let [val (gen)]
+           val
+           (do (alter generators rest)
+               (recur))))))))
+
+(defn- byte-seq [mutable-generator]
+  (lazy-seq
+   (when-let [val (@mutable-generator)]
+     (cons val (byte-seq mutable-generator)))))
+
+(defn- send-bytes [stream bytes]
+  (with-open [s stream] (stream/write s bytes)))
 
 (defn- reset-current-source!
   "Reset the index of the currently playing source to idx."
@@ -39,11 +55,15 @@
   (reset! (:current-source context) idx)
   context)
 
-(defn- sync-send-playlist [playlist session source-idx]
-  (with-open [stream (create-out-stream session)]
-    (doseq [source (->> playlist deref (drop @source-idx) (map :source))]
-      (stream/write stream (byte-seq source))
-      (swap! source-idx inc))))
+(defn- sync-send-playlist [stream playlist idx]
+  (send-bytes stream (->> playlist
+                          deref
+                          (drop idx)
+                          (map :source)
+                          (map source-generator)
+                          composite-generator
+                          atom
+                          byte-seq)))
 
 ;;; public interface
 
@@ -65,7 +85,7 @@
   [playlist session]
   {:playlist playlist
    :session session
-   :current-source (atom 0)})
+   :current-source 0})
 
 (defn send-source
   "Send a single source to the server as specified by session. Session
@@ -74,19 +94,22 @@
   take. This sends the source in realtime, i.e. it will take as long
   as the song lasts to send it. This method is synchronous."
   [session source]
-  (with-open [stream (create-out-stream session)]
-    (stream/write stream (byte-seq source))))
+  (send-bytes (create-out-stream session) (-> source
+                                              io/input-stream
+                                              input-stream-generator
+                                              atom
+                                              byte-seq)))
 
-(defn send-context
-  "Begin sending a context's data to the context's session. This will
-  happen asynchronously and return a new context. If the context is
-  already streaming it will be stopped first."
-  ([context]
-     (send-context @(:current-source context)))
-  ([context idx]
-     (when (future? (:future context)) (future-cancel (:future context)))
-     (assoc context
-       :future (future (sync-send-playlist (:playlist context)
-                                           (:session context)
-                                           (:current-source
-                                            (reset-current-source! context idx)))))))
+;; (defn send-context
+;;   "Begin sending a context's data to the context's session. This will
+;;   happen asynchronously and return a new context. If the context is
+;;   already streaming it will be stopped first."
+;;   ([context]
+;;      (send-context @(:current-source context)))
+;;   ([context idx]
+;;      (when (future? (:future context)) (future-cancel (:future context)))
+;;      (assoc context
+;;        :future (future (sync-send-playlist (:playlist context)
+;;                                            (:session context)
+;;                                            (:current-source
+;;                                             (reset-current-source! context idx)))))))
