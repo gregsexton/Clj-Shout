@@ -19,16 +19,9 @@
         b))))
 
 (defn- source-generator [source]
-  ;; NOT thread-safe. compare and set and STM don't really help as I
-  ;; don't want to create more than one input stream. Would have to
-  ;; lock for thread safety.
-  (let [f (atom nil)]
-    (fn []
-      (if @f (@f)
-          (do (reset! f (-> source
-                            io/input-stream
-                            input-stream-generator))
-              (recur))))))
+  (-> source
+      io/input-stream
+      input-stream-generator))
 
 (defn- composite-generator [generators]
   (let [generators (ref generators)]
@@ -56,14 +49,20 @@
   context)
 
 (defn- sync-send-playlist [stream playlist idx]
-  (send-bytes stream (->> playlist
-                          deref
-                          (drop idx)
-                          (map :source)
-                          (map source-generator)
-                          composite-generator
-                          atom
-                          byte-seq)))
+  (letfn [(seq1 [s]
+            (lazy-seq
+             (when-let [[x] (seq s)]
+               (cons x (seq1 (rest s))))))]
+    (send-bytes stream (->> playlist
+                            deref
+                            (drop idx)
+                            (map :source)
+                            seq1        ;stop source-generator from
+                                        ;creating unnecessary input streams
+                            (map source-generator)
+                            composite-generator
+                            atom
+                            byte-seq))))
 
 ;;; public interface
 
