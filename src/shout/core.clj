@@ -32,15 +32,20 @@
 (defn- byte-seq [source]
   (create-byte-seq (fn [] (io/input-stream source))))
 
-(defn send-source
-  "Send a single source to the server as specified by session. Session
-  should be created using shout.session/create-shout-session. The
-  source may be anything that clojure.java.io/input-stream can
-  take. This sends the source in realtime, i.e. it will take as long
-  as the song lasts to send it. This method is synchronous."
-  [session source]
+(defn- reset-current-source!
+  "Reset the index of the currently playing source to idx."
+  [context idx]
+  {:pre [(>= 0 idx)]}
+  (reset! (:current-source context) idx)
+  context)
+
+(defn- sync-send-playlist [playlist session source-idx]
   (with-open [stream (create-out-stream session)]
-    (stream/write stream (byte-seq source))))
+    (doseq [source (->> playlist deref (drop @source-idx) (map :source))]
+      (stream/write stream (byte-seq source))
+      (swap! source-idx inc))))
+
+;;; public interface
 
 (defn create-playlist
   "Create a playlist. Sources should be a seq of source maps. A source
@@ -56,36 +61,21 @@
 
 (defn create-context
   "Create a context. Contexts are used to send multiple sources as a
-  playlist to a session and maintain control over sending."
+  playlist to a session and maintain control over the sending stream."
   [playlist session]
   {:playlist playlist
    :session session
    :current-source (atom 0)})
 
-(defn reset-current-source!
-  "Reset the index of the currently playing source to idx."
-  [context idx]
-  {:pre [(>= 0 idx)]}
-  (reset! (:current-source context) idx)
-  context)
-
-;;; TODO: currently the control over the currently playing source is
-;;; too coarse (it's at the level of the source). I need information
-;;; at the byte level to be able to pause and resume playing, in the
-;;; event of an error or if the user decides to pause. This will
-;;; require that the stream is able to provide the information on how
-;;; many bytes it has consumed.
-
-(defn- sync-send-playlist [playlist session source-idx]
+(defn send-source
+  "Send a single source to the server as specified by session. Session
+  should be created using shout.session/create-shout-session. The
+  source may be anything that clojure.java.io/input-stream can
+  take. This sends the source in realtime, i.e. it will take as long
+  as the song lasts to send it. This method is synchronous."
+  [session source]
   (with-open [stream (create-out-stream session)]
-    (doseq [source (->> playlist deref (drop @source-idx) (map :source))]
-      (stream/write stream (byte-seq source))
-      (swap! source-idx inc))))
-
-;;; TODO: using indexes is pretty horrible. apart from anything, it
-;;; results in the client getting disconnected when you swap out the
-;;; index. Should be treating this as an infinite sequence of lazy
-;;; bytes where we can change the generator on the fly.
+    (stream/write stream (byte-seq source))))
 
 (defn send-context
   "Begin sending a context's data to the context's session. This will
@@ -100,7 +90,3 @@
                                            (:session context)
                                            (:current-source
                                             (reset-current-source! context idx)))))))
-
-(defn append-to-playlist
-  "Append source to playlist."
-  [playlist source])
