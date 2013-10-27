@@ -88,8 +88,6 @@
                                               atom
                                               byte-seq)))
 
-
-
 (defn send-context
   "Begin sending a context's data to the server as specified by the
   context's session. This will happen asynchronously and return a new
