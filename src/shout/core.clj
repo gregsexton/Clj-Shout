@@ -34,17 +34,11 @@
                (recur))))))))
 
 (defn- playlist-generator [playlist idx]
-  (letfn [(seq1 [s]
-            (lazy-seq
-             (when-let [[x] (seq s)]
-               (cons x (seq1 (rest s))))))]
-    (->> playlist
-         deref
-         (drop idx)
-         (map :source)
-         seq1    ;stop source-generator from creating unnecessary input streams
-         (map source-generator)
-         composite-generator)))
+  (->> playlist
+       (drop idx)
+       (map :source)
+       (map source-generator)
+       composite-generator))
 
 (defn- byte-seq [mutable-generator]
   (lazy-seq
@@ -56,21 +50,12 @@
 
 ;;; public interface
 
-(defn create-playlist
-  "Create a playlist. Sources should be a seq of source maps. A source
-  map is defined as {:source source :metadata metadata}, where source
-  is anything that clojure.java.io/input-stream can take and metadata
-  is anything useful that you wish to attach to this item in the
-  playlist. The metadata is meant to be useful to the client and will
-  be ignored by Shout."
-  ([] (create-playlist []))
-  ([sources]
-     {:pre [(sequential? sources) (every? #(contains? % :source) sources)]}
-     (atom (seq sources))))
-
 (defn create-context
   "Create a context. Contexts are used to send multiple sources as a
-  playlist to a session and maintain control over the sending stream."
+  playlist to a session and maintain control over the sending
+  stream. Session should be created using
+  shout.session/create-shout-session. Playlist should be created using
+  shout.playlist/create-playlist."
   [playlist session]
   {:playlist playlist
    :session session})
