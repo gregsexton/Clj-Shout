@@ -73,8 +73,7 @@
   playlist to a session and maintain control over the sending stream."
   [playlist session]
   {:playlist playlist
-   :session session
-   :current-source 0})
+   :session session})
 
 (defn send-source
   "Send a single source to the server as specified by session. Session
@@ -95,19 +94,19 @@
   "Begin sending a context's data to the server as specified by the
   context's session. This will happen asynchronously and return a new
   context. If the context is already streaming it will immediately
-  begin streaming the new data."
+  begin streaming the new data. idx is the index in to the playlist to
+  begin streaming from."
   ([context]
-     (send-context context (:current-source context)))
+     (send-context context 0))
   ([context idx]
      (letfn [(currently-streaming? [{:keys [future]}]
                (every? #(% future) [future? (complement future-done?)]))]
        (let [gen (playlist-generator (:playlist context) idx)]
-         (assoc (if (currently-streaming? context)
-                  (do (reset! (:generator-atom context) gen)
-                      context)
-                  (let [mutable-gen (atom gen)]
-                    (assoc context
-                      :generator-atom mutable-gen
-                      :future (future (send-bytes (create-out-stream (:session context))
-                                                  (byte-seq mutable-gen))))))
-           :current-source idx)))))
+         (if (currently-streaming? context)
+           (do (reset! (:generator-atom context) gen)
+               context)
+           (let [mutable-gen (atom gen)]
+             (assoc context
+               :generator-atom mutable-gen
+               :future (future (send-bytes (create-out-stream (:session context))
+                                           (byte-seq mutable-gen))))))))))
