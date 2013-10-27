@@ -33,6 +33,19 @@
            (do (alter generators rest)
                (recur))))))))
 
+(defn- playlist-generator [playlist idx]
+  (letfn [(seq1 [s]
+            (lazy-seq
+             (when-let [[x] (seq s)]
+               (cons x (seq1 (rest s))))))]
+    (->> playlist
+         deref
+         (drop idx)
+         (map :source)
+         seq1    ;stop source-generator from creating unnecessary input streams
+         (map source-generator)
+         composite-generator)))
+
 (defn- byte-seq [mutable-generator]
   (lazy-seq
    (when-let [val (@mutable-generator)]
@@ -40,29 +53,6 @@
 
 (defn- send-bytes [stream bytes]
   (with-open [s stream] (stream/write s bytes)))
-
-(defn- reset-current-source!
-  "Reset the index of the currently playing source to idx."
-  [context idx]
-  {:pre [(>= 0 idx)]}
-  (reset! (:current-source context) idx)
-  context)
-
-(defn- sync-send-playlist [stream playlist idx]
-  (letfn [(seq1 [s]
-            (lazy-seq
-             (when-let [[x] (seq s)]
-               (cons x (seq1 (rest s))))))]
-    (send-bytes stream (->> playlist
-                            deref
-                            (drop idx)
-                            (map :source)
-                            seq1        ;stop source-generator from
-                                        ;creating unnecessary input streams
-                            (map source-generator)
-                            composite-generator
-                            atom
-                            byte-seq))))
 
 ;;; public interface
 
@@ -99,16 +89,25 @@
                                               atom
                                               byte-seq)))
 
-;; (defn send-context
-;;   "Begin sending a context's data to the context's session. This will
-;;   happen asynchronously and return a new context. If the context is
-;;   already streaming it will be stopped first."
-;;   ([context]
-;;      (send-context @(:current-source context)))
-;;   ([context idx]
-;;      (when (future? (:future context)) (future-cancel (:future context)))
-;;      (assoc context
-;;        :future (future (sync-send-playlist (:playlist context)
-;;                                            (:session context)
-;;                                            (:current-source
-;;                                             (reset-current-source! context idx)))))))
+
+
+(defn send-context
+  "Begin sending a context's data to the server as specified by the
+  context's session. This will happen asynchronously and return a new
+  context. If the context is already streaming it will immediately
+  begin streaming the new data."
+  ([context]
+     (send-context context (:current-source context)))
+  ([context idx]
+     (letfn [(currently-streaming? [{:keys [future]}]
+               (every? #(% future) [future? (complement future-done?)]))]
+       (let [gen (playlist-generator (:playlist context) idx)]
+         (assoc (if (currently-streaming? context)
+                  (do (reset! (:generator-atom context) gen)
+                      context)
+                  (let [mutable-gen (atom gen)]
+                    (assoc context
+                      :generator-atom mutable-gen
+                      :future (future (send-bytes (create-out-stream (:session context))
+                                                  (byte-seq mutable-gen))))))
+           :current-source idx)))))
