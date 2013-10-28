@@ -148,12 +148,12 @@
        (map unchecked-byte)
        (byte-array)))
 
-(defn write-bytes [writer bytes]
+(defn write-bytes [write bytes]
   (letfn [(rec [buffers excess-pause]
             (let [start (System/currentTimeMillis)]
               (when-let [{:keys [buffer pause]} (first buffers)]
-                (let [excess-pause (writer (build-byte-array buffer)
-                                           (- pause excess-pause) start)]
+                (let [excess-pause (write (build-byte-array buffer)
+                                          (- pause excess-pause) start)]
                   (recur (rest buffers) (or excess-pause 0))))))]
     (rec (create-seq bytes) 0)))
 
