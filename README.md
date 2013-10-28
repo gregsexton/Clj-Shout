@@ -9,14 +9,14 @@ streaming server.
 
 Leiningen
 
-    [shout "0.1.1"]
+    [shout "0.1.2"]
 
 Maven
 
     <dependency>
       <groupId>shout</groupId>
       <artifactId>shout</artifactId>
-      <version>0.1.1</version>
+      <version>0.1.2</version>
     </dependency>
 
 ## Status
