@@ -11,17 +11,13 @@
    (stream/create-protocol-stream session)))
 
 (defn- input-stream-generator
-  [^InputStream stream]
-  (fn []
-    (let [b (.read stream)]
-      (if (= -1 b)
-        (do (.close stream) nil)
-        b))))
-
-(defn- source-generator [source]
-  (-> source
-      io/input-stream
-      input-stream-generator))
+  [source]
+  (let [stream (io/input-stream source)]
+    (fn []
+      (let [b (.read stream)]
+        (if (= -1 b)
+          (do (.close stream) nil)
+          b)))))
 
 (defn- composite-generator [generators]
   (let [generators (ref generators)]
@@ -37,7 +33,7 @@
   (->> playlist
        (drop idx)
        (map :source)
-       (map source-generator)
+       (map input-stream-generator)
        composite-generator))
 
 (defn- byte-seq [mutable-generator]
@@ -68,7 +64,6 @@
   as the song lasts to send it. This method is synchronous."
   [session source]
   (send-bytes (create-out-stream session) (-> source
-                                              io/input-stream
                                               input-stream-generator
                                               atom
                                               byte-seq)))
