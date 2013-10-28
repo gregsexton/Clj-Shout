@@ -11,6 +11,9 @@
 ;;; This is purposely not chunked so as not to create extra
 ;;; input-streams unnecessarily.
 
+(defn- empty-mutable-list []
+  (->MutableList (ref nil)))
+
 (deftype MutableList [head]
   clojure.lang.Sequential
   clojure.lang.ISeq
@@ -27,12 +30,9 @@
          (ref-set last-ref-cons (MutableList. (ref (cons x (empty this)))))
          this))))
   (count [_] (count (deref head)))
-  (empty [_] (MutableList. (ref nil)))
+  (empty [_] (empty-mutable-list))
   (equiv [this x] (identical? this x))
   (seq [this] (when (deref head) this)))
-
-(defn- empty-mutable-list []
-  (->MutableList (ref nil)))
 
 (defn create-playlist
   "Create a playlist. Sources should be a seq of source maps. A source
