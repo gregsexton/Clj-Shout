@@ -5,8 +5,8 @@
 ;;; clients, so changes in state must be done on the fly.
 
 ;;; This is implemented as cons cells wrapped in refs for coordination
-;;; purposes. Consing (the result of conj) mutably appends. Ref
-;;; dereferencing is handled transparently. If this turns out to be
+;;; purposes. Ref dereferencing is handled transparently. Consing (the
+;;; result of conj) mutably appends (O(n)). If this turns out to be
 ;;; too inefficient maybe a rope would make a better datastructure?
 ;;; This is purposely not chunked so as not to create extra
 ;;; input-streams unnecessarily.
