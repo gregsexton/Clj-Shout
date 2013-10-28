@@ -11,6 +11,8 @@
 ;;; This is purposely not chunked so as not to create extra
 ;;; input-streams unnecessarily.
 
+(declare ->MutableList)
+
 (defn- empty-mutable-list []
   (->MutableList (ref nil)))
 
