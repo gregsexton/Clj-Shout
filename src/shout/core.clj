@@ -32,7 +32,6 @@
 (defn- playlist-generator [playlist idx]
   (->> playlist
        (drop idx)
-       (map :source)
        (map input-stream-generator)
        composite-generator))
 

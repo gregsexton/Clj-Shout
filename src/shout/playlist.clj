@@ -37,22 +37,16 @@
   (seq [this] (when (deref head) this)))
 
 (defn create-playlist
-  "Create a playlist. Sources should be a seq of source maps. A source
-  map is defined as {:source source :metadata metadata}, where source
-  is anything that clojure.java.io/input-stream can take and metadata
-  is anything useful that you wish to attach to this item in the
-  playlist. The metadata is meant to be useful to the client and will
-  be ignored by Shout."
+  "Create a playlist. Sources should be a seq of anything that
+  clojure.java.io/input-stream can take."
   ([] (create-playlist []))
   ([sources]
-     {:pre [(sequential? sources) (every? #(contains? % :source) sources)]}
+     {:pre [(sequential? sources)]}
      (reduce conj (empty-mutable-list) sources)))
 
 (defn append-source!
-  "Append a source to a playlist. A source map is defined as {:source
-  source :metadata metadata}, where source is anything that
-  clojure.java.io/input-stream can take and metadata is anything
-  useful that you wish to attach to this item in the playlist."
+  "Append a source to a playlist. A source is anything that
+  clojure.java.io/input-stream can take."
   [playlist source]
-  {:pre [(instance? MutableList playlist) (contains? source :source)]}
+  {:pre [(instance? MutableList playlist)]}
   (conj playlist source))
