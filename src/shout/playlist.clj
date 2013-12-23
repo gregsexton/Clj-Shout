@@ -9,55 +9,74 @@
 ;;; consistent manner. This implementation should provide this
 ;;; behaviour.
 
-(deftype ConcurrentArrayList [^java.util.List list]
+(defprotocol SlidingCursor
+  (notify-remove [this idx])
+  (notify-insert [this idx]))
+
+(deftype ConcurrentArrayList [^java.util.List list iterators]
   java.util.RandomAccess
   java.util.List
   (size [_] (locking list (.size list)))
   (add [_ x] (locking list (.add list x)))
-  (add [_ idx x] (locking list (.add list idx x)))
-  (remove [_ ^int idx] (locking list (.remove list idx)))
+  (add [_ idx x] (locking list
+                   (let [res (.add list idx x)]
+                     (doseq [it @iterators] (notify-insert it idx))
+                     res)))
+  (remove [_ ^int idx] (locking list
+                         (let [res (.remove list idx)]
+                           (doseq [it @iterators] (notify-remove it idx))
+                           res)))
   (get [_ idx] (locking list (.get list idx)))
   (iterator [_]
-    (letfn [(initial [cursor]
-              (fn [op]
-                (condp = op
-                  :has-next (if (< cursor (.size list))
-                              {:transition (cached cursor (.get list cursor))
+    (locking list
+      (letfn [(initial []
+                (fn [op cursor]
+                  (swap! cursor inc)
+                  (condp = op
+                    :has-next (if (< @cursor (.size list))
+                                {:transition (cached (.get list @cursor))
+                                 :has-next true}
+                                {:transition (ended)
+                                 :has-next false})
+                    :next (if (< @cursor (.size list))
+                            {:transition (initial)
+                             :next (.get list @cursor)}
+                            {:transition (ended)
+                             :next (throw (java.util.NoSuchElementException.))}))))
+              (cached [val]
+                (fn [op cursor]
+                  (condp = op
+                    :has-next {:transition (cached val)
                                :has-next true}
-                              {:transition (ended)
-                               :has-next false})
-                  :next (if (< cursor (.size list))
-                          {:transition (initial (inc cursor))
-                           :next (.get list cursor)}
-                          {:transition (ended)
-                           :next (throw (java.util.NoSuchElementException.))}))))
-            (cached [cursor val]
-              (fn [op]
-                (condp = op
-                  :has-next {:transition (cached cursor val)
-                             :has-next true}
-                  :next {:transition (initial (inc cursor))
-                         :next val})))
-            (ended []
-              (fn [_] {:transition (ended)
-                       :has-next false
-                       :next (throw (java.util.NoSuchElementException.))}))
-            (transition [state op]
-              ((:transition state) op))]
-      (let [state (atom {:transition (initial 0)})]
-        (reify
-          java.util.Iterator
-          (hasNext [_]
-            (locking list
-              (swap! state transition :has-next)
-              (:has-next @state)))
-          (next [_]
-            (locking list
-              (swap! state transition :next)
-              (:next @state))))))))
+                    :next {:transition (initial)
+                           :next val})))
+              (ended []
+                (fn [_ _] {:transition (ended)
+                           :has-next false
+                           :next (throw (java.util.NoSuchElementException.))}))
+              (transition [state & args]
+                (apply (:transition state) args))]
+        (let [state (atom {:transition (initial)})
+              cursor (atom -1)
+              iter (reify
+                     SlidingCursor
+                     (notify-remove [_ idx] (swap! cursor #(if (>= % idx) (dec %) %)))
+                     (notify-insert [_ idx] (swap! cursor #(if (>= % idx) (inc %) %)))
+                     java.util.Iterator
+                     (hasNext [_]
+                       (locking list
+                         (swap! state transition :has-next cursor)
+                         (:has-next @state)))
+                     (next [_]
+                       (locking list
+                         (swap! state transition :next cursor)
+                         (:next @state))))]
+          (swap! iterators conj iter)
+          iter)))))
 
 (defn ->ConcurrentArrayList []
-  (new ConcurrentArrayList (java.util.ArrayList.)))
+  ;; TODO: swap for a weak reference based set
+  (new ConcurrentArrayList (java.util.ArrayList.) (atom #{})))
 
 (defn create-playlist
   "Create a mutable thread-safe (can be modified concurrently and
