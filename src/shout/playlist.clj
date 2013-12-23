@@ -9,6 +9,11 @@
 ;;; consistent manner. This implementation should provide this
 ;;; behaviour.
 
+;;; TODO: All this mutability is a design smell. This all stems from
+;;; the choice to use a stateful generating function, which was
+;;; imposed by using InputStream as the primary transport
+;;; mechanism. Revisit the design.
+
 (defprotocol SlidingCursor
   (notify-remove [this idx])
   (notify-insert [this idx]))
