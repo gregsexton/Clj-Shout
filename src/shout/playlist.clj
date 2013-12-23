@@ -76,12 +76,13 @@
                        (locking list
                          (swap! state transition :next cursor)
                          (:next @state))))]
-          (swap! iterators conj iter)
+          (swap! iterators #(do (.add % iter) %))
           iter)))))
 
 (defn ->ConcurrentArrayList []
-  ;; TODO: swap for a weak reference based set
-  (new ConcurrentArrayList (java.util.ArrayList.) (atom #{})))
+  (new ConcurrentArrayList
+       (java.util.ArrayList.)
+       (atom (java.util.Collections/newSetFromMap (java.util.WeakHashMap.)))))
 
 (defn create-playlist
   "Create a mutable thread-safe (can be modified concurrently and
